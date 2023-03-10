@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Sync Data from Google Sheets</title>
+  <script src="https://apis.google.com/js/api.js"></script>
+  <script>
+    function start() {
+      // Load the API client and authenticate the user.
+      gapi.load('client', function() {
+        gapi.client.init({
+          apiKey: '<YOUR_API_KEY>',
+          discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
+          clientId: '<YOUR_CLIENT_ID>',
+          scope: 'https://www.googleapis.com/auth/spreadsheets.readonly'
+        }).then(function() {
+          // Fetch the data from the Google Sheets.
+          return gapi.client.sheets.spreadsheets.values.get({
+            spreadsheetId: '<YOUR_SPREADSHEET_ID>',
+            range: '<YOUR_RANGE>'
+          });
+        }).then(function(response) {
+          // Build the table.
+          var values = response.result.values;
+          var table = document.createElement('table');
+          var headerRow = table.insertRow();
+          headerRow.insertCell(0).innerHTML = 'Name';
+          headerRow.insertCell(1).innerHTML = 'FP';
+          headerRow.insertCell(2).innerHTML = 'I bid';
+          headerRow.insertCell(3).innerHTML = 'Link';
+          for (var i = 0; i < values.length; i++) {
+            var row = table.insertRow();
+            row.insertCell(0).innerHTML = values[i][0];
+            row.insertCell(1).innerHTML = values[i][1];
+            row.insertCell(2).innerHTML = values[i][2];
+            row.insertCell(3).innerHTML = '<a href="' + values[i][3] + '">Link</a>';
+          }
+          document.body.appendChild(table);
+          // Keep the data synchronized.
+          setInterval(function() {
+            gapi.client.sheets.spreadsheets.values.get({
+              spreadsheetId: '<YOUR_SPREADSHEET_ID>',
+              range: '<YOUR_RANGE>'
+            }).then(function(response) {
+              var newValues = response.result.values;
+              for (var i = 0; i < newValues.length; i++) {
+                for (var j = 0; j < values.length; j++) {
+                  if (newValues[i][0] == values[j][0]) {
+                    values[j] = newValues[i];
+                    break;
+                  }
+                }
+              }
+              for (var i = 0; i < table.rows.length; i++) {
+                table.rows[i].cells[0].innerHTML = values[i][0];
+                table.rows[i].cells[1].innerHTML = values[i][1];
+                table.rows[i].cells[2].innerHTML = values[i][2];
+                table.rows[i].cells[3].innerHTML = '<a href="' + values[i][3] + '">Link</a>';
+              }
+            });
+          }, 5000);
+        }, function(reason) {
+          console.error('Error: ' + reason.result.error.message);
+        });
+      });
+    }
+  </script>
+</head>
+<body onload="start()">
+</body>
+</html>
